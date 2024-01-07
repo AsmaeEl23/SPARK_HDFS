@@ -12,8 +12,6 @@
 <h5>start-dfs.sh </h5>
 <h5>start-yarn.sh</h5>
 <h5>jps</h5>
-<h3><li>Create Repository</li></h3>
-<h5>start-dfs.sh </h5>
 <h3><li>Create directory /enset/sdia</li></h3>
 <h5>hdfs dfs -mkdir /enset</h5>
 <h5>hdfs dfs -mkdir /enset/sdia</h5>
@@ -88,6 +86,14 @@
         &lt;groupId&gt;org.apache.spark&lt;/groupId&gt;
         &lt;artifactId&gt;spark-streaming_2.13&lt;/artifactId&gt;
         &lt;version&gt;3.4.1&lt;/version&gt;
+    &lt;/dependency&gt;
+</pre>
+<h3>Mlib</h3>
+<pre>
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.apache.spark&lt;/groupId&gt;
+        &lt;artifactId&gt;spark-mllib_2.13&lt;/artifactId&gt;
+        &lt;version&gt;3.5.0&lt;/version&gt;
     &lt;/dependency&gt;
 </pre>
 
@@ -212,8 +218,60 @@ SparkSession ss=SparkSession.builder().appName("TP SPARK SQL").master("local[*]"
 <h2><li>PySpark</li></h2>
 <p>Linux first command</p>
 <p></p>
-<h2><li></li></h2>
-<h2><li></li></h2>
+
+
+<h2><li>Machine Learning with Spark</li></h2>
+<h4>Kmeans</h4>
+<pre>
+public static void main(String[] args) {
+        SparkSession ss=SparkSession.builder().appName("Kmeans app").master("local[*]").getOrCreate();
+        Dataset<Row> data=ss.read().option("inferSchema",true).option("header",true).csv("Mall_Customers.csv");
+        VectorAssembler assembler=new VectorAssembler().setInputCols(
+                new String[]{
+                        "Age","Annual Income (k$)","Spending Score (1-100)"
+                }
+        ).setOutputCol("features");
+        Dataset<Row> assembledDF=assembler.transform(data);
+        //normalization
+        MinMaxScaler scaler=new MinMaxScaler().setInputCol("features").setOutputCol("normalizedFeatures");
+        Dataset<Row> normalizedDF =scaler.fit(assembledDF).transform(assembledDF);
+
+        KMeans kMeans=new KMeans().setK(3)
+                .setSeed(123)
+                .setFeaturesCol("normalizedFeatures")
+                .setPredictionCol("Cluster");
+        KMeansModel model=kMeans.fit(normalizedDF);
+        Dataset<Row> predictions=model.transform(normalizedDF);
+        predictions.show(100);
+        ClusteringEvaluator evaluator=new ClusteringEvaluator();
+        double score=evaluator.evaluate(predictions);
+        System.out.println("Score "+score);
+
+    }
+</pre>
+<h4>Kmeans</h4>
+
+
+<h2><li>Spark with Docker</li></h2>
+<h4>Command to run the jar</h4>
+<h5>docker exec -it spark-master spark-submit --class org.example.App2  /bitnami/Spark_Docker-1.0-SNAPSHOT.jar</h5>
+<h4>App</h4>
+<pre>
+SparkSession ss=SparkSession.builder().appName("TP SPARK SQL").master("spark://spark-master:7077").getOrCreate();
+Dataset&lt;Row> dframe1=ss.read().option("header",true).option("inferSchema",true).csv("/bitnami/incidents.csv");
+</pre>
+
+
+<h2><li>SQOOP</li></h2>
+<h5>:/opt/lampp$   sudo ./manager-linux-x64.run</h5>
+<h5>:/opt/lampp$   start-dfs.sh</h5>
+<h5>:/opt/lampp$   start-yarn.sh</h5>
+<h4>Import</h4>
+<p>sqoop import --connect jdbc:mysql://localhost/spark_db --username "root" --password "" --table employees --target-dir /sqoop  {sqoop file in hdfs}</p>
+<h4>Export</h4>
+<p>sqoop export --connect jdbc:mysql://localhost/spark_db --username "root" --password "" --table "employees"  --export-dir "/sqoop_data" --input-fields-terminated-by ',' --input-lines-terminated-by '\n' </p>
+
+
 <h2><li></li></h2>
 </ol>
 
